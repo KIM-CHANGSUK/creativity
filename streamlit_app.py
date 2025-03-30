@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import io
 
 # 질문 리스트
 questions = [
@@ -15,19 +16,19 @@ questions = [
     "자신이 살아온 이야기를 '식물'에 비유해 보세요. 어떤 식물에 가장 비슷하다고 생각하나요? 이유는?"
 ]
 
-# Streamlit 앱 UI 설정
+# Streamlit 앱 기본 설정
 st.set_page_config(page_title="창의력 검사", layout="centered")
 st.title("🧠 창의력 검사")
 
-# 초기 세션 상태 설정
+# 세션 상태 초기화
 if "step" not in st.session_state:
-    st.session_state.step = -1  # 시작 전 상태
+    st.session_state.step = -1  # 정보 입력 단계
     st.session_state.answers = []
     st.session_state.name = ""
     st.session_state.gender = ""
     st.session_state.age = ""
 
-# 사용자 정보 입력 단계
+# 참가자 정보 입력 단계
 if st.session_state.step == -1:
     st.subheader("👤 참가자 정보 입력")
 
@@ -45,7 +46,7 @@ if st.session_state.step == -1:
         else:
             st.warning("이름과 나이를 모두 입력해주세요.")
 
-# 질문 단계
+# 질문 응답 단계
 elif st.session_state.step < len(questions):
     q_idx = st.session_state.step
     st.subheader(f"질문 {q_idx + 1}/{len(questions)}")
@@ -58,7 +59,7 @@ elif st.session_state.step < len(questions):
         st.session_state.step += 1
         st.rerun()
 
-# 결과 출력 단계
+# 결과 출력 및 다운로드 단계
 else:
     st.success("🎉 모든 질문이 완료되었습니다! 결과를 확인하세요.")
     st.markdown(f"**이름:** {st.session_state.name} &nbsp;&nbsp;&nbsp; **성별:** {st.session_state.gender} &nbsp;&nbsp;&nbsp; **나이:** {st.session_state.age}")
@@ -67,17 +68,23 @@ else:
         st.markdown(f"### 질문 {i+1}: {q}")
         st.markdown(f"**답변:** {a}")
 
+    # 질문-답변 테이블 생성
     df = pd.DataFrame({
-        "이름": st.session_state.name,
-        "성별": st.session_state.gender,
-        "나이": st.session_state.age,
         "질문": [q for q, a in st.session_state.answers],
         "답변": [a for q, a in st.session_state.answers]
     })
 
+    # CSV 파일 생성 (이름/성별/나이 → 빈 줄 → 질문/답변)
+    csv_buffer = io.StringIO()
+    csv_buffer.write(f"이름,{st.session_state.name}\n")
+    csv_buffer.write(f"성별,{st.session_state.gender}\n")
+    csv_buffer.write(f"나이,{st.session_state.age}\n")
+    csv_buffer.write("\n")  # 한 줄 띄우기
+    df.to_csv(csv_buffer, index=False)
+
     st.download_button(
-        label="📥 결과 다운로드",
-        data=df.to_csv(index=False).encode("utf-8-sig"),
+        label="📥 결과 다운로드 (CSV)",
+        data=csv_buffer.getvalue().encode("utf-8-sig"),
         file_name=f"창의력_검사_결과_{st.session_state.name}.csv",
         mime="text/csv"
     )
