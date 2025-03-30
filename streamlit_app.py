@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
 import os
-import openai
+from openai import OpenAI
 
-# OpenAI API 키 설정
-openai.api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY")
+# OpenAI 클라이언트 초기화 (v1+ 방식)
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else os.getenv("OPENAI_API_KEY"))
 
 # 질문 리스트
 questions = [
@@ -15,7 +15,7 @@ questions = [
     "환경 문제(예: 플라스틱 쓰레기)를 해결할 수 있는 기발한 방법을 생각해보세요. 현실적 적용이 가능할수록 좋아요."
 ]
 
-# GPT 평가 함수
+# GPT 평가 함수 (OpenAI >= 1.0.0 호환)
 def gpt_score(question, answer):
     prompt = f"""
     질문: {question}
@@ -29,7 +29,7 @@ def gpt_score(question, answer):
     각 항목 점수와 총점, 간단한 피드백을 포함해 주세요.
     """
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.7
